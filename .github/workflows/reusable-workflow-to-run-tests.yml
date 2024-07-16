@@ -46,6 +46,8 @@ jobs:
           GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
 
       - name: Test with Maven
+        id: maven_test
+        continue-on-error: true
         run: >
           mvn
           -DexcludedGroups="${{ inputs.tags-of-tests-to-exclude }}"
@@ -56,25 +58,26 @@ jobs:
           clean -B package --file pom.xml
 
       - name: Generate Test Report
-        if: inputs.generate-report
+        if: always() && inputs.generate-report
         run: |
           mvn surefire-report:report-only
           echo "Test Report generated"
 
       - name: Send Email Report
-        if: inputs.send-email
+        if: always() && inputs.send-email
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
           username: ${{secrets.EMAIL_USERNAME}}
           password: ${{secrets.EMAIL_PASSWORD}}
-          subject: Test Report for ${{ inputs.run-name }}
+          subject: Test Report for ${{ inputs.run-name }} - ${{ steps.maven_test.outcome }}
           body: |
-            Test Report for ${{ inputs.run-name }}
+                Test Report for ${{ inputs.run-name }}
             
-            Environment: ${{ inputs.test-environment }}
-            Triggered by: ${{ github.event_name }}
+          Environment: ${{ inputs.test-environment }}
+          Triggered by: ${{ github.event_name }}
+          Test Outcome: ${{ steps.maven_test.outcome }}
             
             Please find the detailed test report attached.
           to: durgamajji33@gmail.com
