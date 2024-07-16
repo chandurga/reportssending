@@ -27,6 +27,10 @@ on:
         type: boolean
         default: false
 
+    permissions:
+      contents: read
+      security-events: write
+
 jobs:
   run-tests:
     runs-on: ubuntu-latest
@@ -81,6 +85,6 @@ jobs:
           from: Test Reporter <durgaprasadmajji33@gmail.com>
           attachments: target/site/surefire-report.html
 
-      - name: Update dependency graph
-        if: always()
+      - name: Submit Dependency Snapshot
         uses: advanced-security/maven-dependency-submission-action@v1
+        continue-on-error: true
