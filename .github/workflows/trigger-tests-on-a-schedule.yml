@@ -17,4 +17,6 @@ jobs:
     with:
       tags-of-tests-to-include: ""  # -Dgroups="" means execute all test cases
       tags-of-tests-to-exclude: ""  # -DexcludedGroups="" means don't exclude any test case
+      generate-report: true
+      send-email: true
     secrets: inherit

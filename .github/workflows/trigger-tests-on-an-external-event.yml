@@ -14,4 +14,6 @@ jobs:
       tags-of-tests-to-include: ${{ github.event.client_payload.TAG }}  # -Dgroups="" means execute all test cases
       tags-of-tests-to-exclude: ""  # -DexcludedGroups="" means don't exclude any test case
       test-environment: ${{ github.event.client_payload.TEST_ENV }}
+      generate-report: true
+      send-email: true
     secrets: inherit

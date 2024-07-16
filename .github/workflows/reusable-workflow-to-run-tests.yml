@@ -6,34 +6,37 @@ on:
       tags-of-tests-to-include:
         required: true
         type: string
-
       tags-of-tests-to-exclude:
         required: false
         type: string
         default: "flaky, failing"
-
       test-environment:
         required: false
         type: string
         default: "STAGING"
-
       run-name:
         required: false
         type: string
         default: "CI"
+      generate-report:
+        required: false
+        type: boolean
+        default: false
+      send-email:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   run-tests:
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up JDK 17
+      - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:
-          java-version: '17'
+          java-version: '11'
           distribution: 'temurin'
           cache: maven
 
@@ -51,3 +54,33 @@ jobs:
           -DTRIGGERED_BY="${{ github.event_name }}"
           -DRUN_NAME="${{ inputs.run-name }}"
           clean -B package --file pom.xml
+
+      - name: Generate Test Report
+        if: inputs.generate-report
+        run: |
+          mvn surefire-report:report-only
+          echo "Test Report generated"
+
+      - name: Send Email Report
+        if: inputs.send-email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{secrets.EMAIL_USERNAME}}
+          password: ${{secrets.EMAIL_PASSWORD}}
+          subject: Test Report for ${{ inputs.run-name }}
+          body: |
+            Test Report for ${{ inputs.run-name }}
+            
+            Environment: ${{ inputs.test-environment }}
+            Triggered by: ${{ github.event_name }}
+            
+            Please find the detailed test report attached.
+          to: durgamajji33@gmail.com
+          from: Test Reporter <durgaprasadmajji33@gmail.com>
+          attachments: target/site/surefire-report.html
+
+      - name: Update dependency graph
+        if: always()
+        uses: advanced-security/maven-dependency-submission-action@v1

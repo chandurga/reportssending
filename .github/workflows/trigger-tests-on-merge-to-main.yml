@@ -12,4 +12,6 @@ jobs:
     uses: ./.github/workflows/reusable-workflow-to-run-tests.yml
     with:
       tags-of-tests-to-include: ""
+      generate-report: true
+      send-email: true
     secrets: inherit
