@@ -27,13 +27,12 @@ on:
         type: boolean
         default: false
 
-    permissions:
-      contents: read
-      security-events: write
-
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v3
 
