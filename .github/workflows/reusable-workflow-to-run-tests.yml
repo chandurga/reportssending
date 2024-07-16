@@ -80,7 +80,7 @@ jobs:
           Test Outcome: ${{ steps.maven_test.outcome }}
             
             Please find the detailed test report attached.
-          to: durgamajji33@gmail.com
+          to: durgamajji033@gmail.com
           from: Test Reporter <durgaprasadmajji33@gmail.com>
           attachments: target/site/surefire-report.html
 
