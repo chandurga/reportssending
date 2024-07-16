@@ -7,6 +7,10 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   trigger-tests-on-merge-to-main:
     uses: ./.github/workflows/reusable-workflow-to-run-tests.yml
