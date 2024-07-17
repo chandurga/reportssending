@@ -27,15 +27,6 @@ on:
         type: boolean
         default: false
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-  actions: read
-  checks: write
-  deployments: write
-  security-events: write
-
 jobs:
   run-tests:
     runs-on: ubuntu-latest
@@ -108,20 +99,22 @@ jobs:
 
       - name: Send email
         if: always() && inputs.send-email
-        uses: resend/github-action-mailgun@v0.1.1
         env:
           MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
           MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
+        run: |
+          curl -s --user "api:$MAILGUN_API_KEY" \
+            https://api.mailgun.net/v3/$MAILGUN_DOMAIN/messages \
+            -F from="Test Reporter <testbot@$MAILGUN_DOMAIN>" \
+            -F to=durgamajji033@gmail.com \
+            -F subject="Test Report for ${{ inputs.run-name }} - ${{ steps.maven-test.outcome }}" \
+            -F html="$(cat email_body.html)"
         with:
           to: durgamajji033@gmail.com
           from: Test Reporter <testbot@${{ secrets.MAILGUN_DOMAIN }}>
           subject: "Test Report for ${{ inputs.run-name }} - ${{ steps.maven-test.outcome }}"
           html: file://email_body.html
           attachments: target/site/surefire-report.html
-
-      - name: Submit Dependency Snapshot
-        if: always()
-        uses: advanced-security/maven-dependency-submission-action@v3
 
       - uses: actions/upload-artifact@v3
         if: always()

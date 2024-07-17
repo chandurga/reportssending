@@ -1,7 +1,7 @@
 # This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
 # For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
 
-name: trigger-tests-on-merge-to-main
+name: Run Tests on Merge to Main
 
 on:
   push:
@@ -9,14 +9,13 @@ on:
 
 permissions:
   contents: read
-  actions: read
-  security-events: write
 
 jobs:
-  trigger-tests-on-merge-to-main:
+  run-tests:
     uses: ./.github/workflows/reusable-workflow-to-run-tests.yml
     with:
       tags-of-tests-to-include: ""
+      tags-of-tests-to-exclude: ""
       generate-report: true
       send-email: true
     secrets: inherit
