@@ -64,10 +64,13 @@ jobs:
       - name: Extract Test Results
         if: always()
         run: |
-          echo "<h2>Test Results:</h2>" | tee test_results.html
-          echo "<pre>" >> test_results.html
-          grep -A 1 "Tests run:" target/surefire-reports/*.txt | tee -a test_results.html || echo "No test results found" >> test_results.html
-          echo "</pre>" >> test_results.html
+          echo "<h2>Test Results Summary:</h2>" > test_results.html
+          echo "<table border='1'>" >> test_results.html
+          echo "<tr><th>Test Suite</th><th>Tests Run</th><th>Failures</th><th>Errors</th><th>Skipped</th></tr>" >> test_results.html
+          grep "Tests run:" target/surefire-reports/*.txt | sed -E 's/.*Tests run: ([0-9]+), Failures: ([0-9]+), Errors: ([0-9]+), Skipped: ([0-9]+).*\/([^/]+\.txt).*/\5|\1|\2|\3|\4/' | while IFS='|' read -r suite tests failures errors skipped; do
+            echo "<tr><td>$suite</td><td>$tests</td><td>$failures</td><td>$errors</td><td>$skipped</td></tr>" >> test_results.html
+          done
+          echo "</table>" >> test_results.html
 
       - name: Prepare Email Content
         if: always() && inputs.send-email
@@ -79,6 +82,11 @@ jobs:
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Test Report for ${{ inputs.run-name }}</title>
+            <style>
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+            </style>
           </head>
           <body>
             <h1>Test Report for ${{ inputs.run-name }}</h1>
@@ -87,14 +95,7 @@ jobs:
 
           cat test_results.html >> email_body.html
 
-          echo "<p>Please find the detailed test report below:</p>" >> email_body.html
-
-          if [ -f target/site/surefire-report.html ]; then
-            sed -n '/<body/,/<\/body>/p' target/site/surefire-report.html >> email_body.html
-          else
-            echo "<p>Surefire report not found. There might have been an error in test execution or report generation.</p>" >> email_body.html
-          fi
-
+          echo "<p>Please find the detailed test report in the attached Surefire report.</p>" >> email_body.html
           echo "</body></html>" >> email_body.html
 
       - name: Send Email Notification
@@ -119,5 +120,5 @@ jobs:
           path: target/surefire-reports/
 
       - name: Check on failures
-        if: steps.maven-test.outcome != 'success'
+        if: steps.maven-test.outcome != 'success' && inputs.fail-on-test-failure
         run: exit 1
