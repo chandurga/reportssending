@@ -98,18 +98,20 @@ jobs:
           </html>
           EOF
 
-      - name: Send email
-        if: always() && inputs.send-email
-        env:
-          MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
-          MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
-        run: |
-          curl -s --user "api:$MAILGUN_API_KEY" \
-            https://api.mailgun.net/v3/$MAILGUN_DOMAIN/messages \
-            -F from="Test Reporter <testbot@$MAILGUN_DOMAIN>" \
-            -F to=recipient@example.com \
-            -F subject="Test Report for ${{ inputs.run-name }} - ${{ steps.maven-test.outcome }}" \
-            -F html="$(cat email_body.html)"
+      - name: Send Email Notification
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          to: durgamajji033@gmail.com
+          from: Test Reporter <testbot@${{ secrets.EMAIL_USERNAME }}>
+          subject: "Test Report for ${{ inputs.run-name }} - ${{ steps.maven-test.outcome }}"
+          html: file://email_body.html
+          attachments: target/site/surefire-report.html
 
       - uses: actions/upload-artifact@v3
         if: always()
