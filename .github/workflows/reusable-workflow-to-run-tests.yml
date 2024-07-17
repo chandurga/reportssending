@@ -74,8 +74,3 @@ jobs:
             to: durgamajji033@gmail.com
             from: Test Reporter <${{ secrets.EMAIL_USERNAME }}>
             attachments: target/site/surefire-report.html
-
-      - name: Submit Dependency Snapshot
-        uses: advanced-security/maven-dependency-submission-action@v3
-        with:
-         token: ${{ secrets.GITHUB_TOKEN }}
