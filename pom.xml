@@ -14,6 +14,7 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.plugin>3.10.1</maven.compiler.plugin>
         <maven.surefire.plugin>3.0.0-M5</maven.surefire.plugin>
+        <maven.surefire.report>2.22.1</maven.surefire.report>
         <maven.site.plugin>3.11.0</maven.site.plugin>
         <junit.jupiter.version>5.8.2</junit.jupiter.version>
         <lombok.version>1.18.24</lombok.version>
@@ -138,16 +139,17 @@
                     </execution>
                 </executions>
             </plugin>
-        </plugins>
-    </build>
-    <reporting>
-        <plugins>
-            <!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-surefire-report-plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven.surefire.plugin}</version>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <version>2.22.2</version>
             </plugin>
         </plugins>
-    </reporting>
+    </build>
+<!--    <reporting>-->
+<!--        <plugins>-->
+<!--            &lt;!&ndash; https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-surefire-report-plugin &ndash;&gt;-->
+
+<!--        </plugins>-->
+<!--    </reporting>-->
 </project>
