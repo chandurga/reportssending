@@ -59,4 +59,3 @@ jobs:
 
       - name: Submit Dependency Snapshot
         uses: advanced-security/maven-dependency-submission-action@v1
-        continue-on-error: true
