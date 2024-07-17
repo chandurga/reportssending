@@ -46,8 +46,6 @@ jobs:
           GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
 
       - name: Test with Maven
-        id: maven_test
-        continue-on-error: true
         run: >
           mvn
           -DexcludedGroups="${{ inputs.tags-of-tests-to-exclude }}"
@@ -56,3 +54,28 @@ jobs:
           -DTRIGGERED_BY="${{ github.event_name }}"
           -DRUN_NAME="${{ inputs.run-name }}"
           clean -B package --file pom.xml
+
+      - name: Generate Surefire Report
+        if: ${{ inputs.send-email }}
+        run: mvn surefire-report:report-only
+
+      - name: Send Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+            server_address: smtp.gmail.com
+            server_port: 465
+            username: ${{ secrets.EMAIL_USERNAME }}
+            password: ${{ secrets.EMAIL_PASSWORD }}
+            subject: Test Report for CI - ${{ job.status }}
+            body: |
+                Test Report for CI
+                Job Status: ${{ job.status }}
+                Please find the detailed test report attached.
+            to: durgamajji033@gmail.com
+            from: Test Reporter <${{ secrets.EMAIL_USERNAME }}>
+            attachments: target/site/surefire-report.html
+
+      - name: Submit Dependency Snapshot
+        uses: advanced-security/maven-dependency-submission-action@v3
+        with:
+         token: ${{ secrets.GITHUB_TOKEN }}
