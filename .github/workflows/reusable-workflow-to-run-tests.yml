@@ -62,20 +62,26 @@ jobs:
       - name: Extract Failed Tests
         if: failure() && inputs.send-email
         run: |
-          echo "<h2>Failed Tests:</h2>" > failed_tests.html
-          grep -A 1 "Tests in error:" target/surefire-reports/*.txt | grep -v "Tests in error:" >> failed_tests.html
-          grep -A 1 "Tests run:" target/surefire-reports/*.txt | grep "Failures:" >> failed_tests.html
+            echo "<h2>Failed Tests:</h2>" | tee failed_tests.html
+            grep -A 1 "Tests in error:" target/surefire-reports/*.txt | grep -v "Tests in error:" | tee -a failed_tests.html || true
+            grep -A 1 "Tests run:" target/surefire-reports/*.txt | grep "Failures:" | tee -a failed_tests.html || true
 
       - name: Prepare Email Content
         if: inputs.send-email
         run: |
-          echo "<h1>Test Report for ${{ inputs.run-name }}</h1>" > email_body.html
-          echo "<p>Job Status: ${{ job.status }}</p>" >> email_body.html
-          if [ "${{ job.status }}" = "failure" ]; then
-            cat failed_tests.html >> email_body.html
-          fi
-          echo "<p>Please find the detailed test report below:</p>" >> email_body.html
-          cat target/site/surefire-report.html >> email_body.html
+            {
+              echo "<h1>Test Report for ${{ inputs.run-name }}</h1>"
+              echo "<p>Job Status: ${{ job.status }}</p>"
+              if [ "${{ job.status }}" = "failure" ] && [ -f failed_tests.html ]; then
+                cat failed_tests.html
+              fi
+              echo "<p>Please find the detailed test report below:</p>"
+              if [ -f target/site/surefire-report.html ]; then
+                cat target/site/surefire-report.html
+              else
+                echo "<p>Surefire report not found. There might have been an error in test execution or report generation.</p>"
+              fi
+            } | tee email_body.html
 
       - name: Send Email
         if: inputs.send-email
