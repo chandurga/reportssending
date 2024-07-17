@@ -69,19 +69,33 @@ jobs:
       - name: Prepare Email Content
         if: inputs.send-email
         run: |
-            {
-              echo "<h1>Test Report for ${{ inputs.run-name }}</h1>"
-              echo "<p>Job Status: ${{ job.status }}</p>"
-              if [ "${{ job.status }}" = "failure" ] && [ -f failed_tests.html ]; then
-                cat failed_tests.html
-              fi
-              echo "<p>Please find the detailed test report below:</p>"
-              if [ -f target/site/surefire-report.html ]; then
-                cat target/site/surefire-report.html
-              else
-                echo "<p>Surefire report not found. There might have been an error in test execution or report generation.</p>"
-              fi
-            } | tee email_body.html
+            cat << EOF > email_body.html
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Test Report for ${{ inputs.run-name }}</title>
+            </head>
+            <body>
+            <h1>Test Report for ${{ inputs.run-name }}</h1>
+            <p>Job Status: ${{ job.status }}</p>
+            EOF
+            
+            if [ "${{ job.status }}" = "failure" ] && [ -f failed_tests.html ]; then
+            cat failed_tests.html >> email_body.html
+            fi
+            
+            echo "<p>Please find the detailed test report below:</p>" >> email_body.html
+            
+            if [ -f target/site/surefire-report.html ]; then
+            # Extract the body content of the Surefire report
+            sed -n '/<body/,/<\/body>/p' target/site/surefire-report.html >> email_body.html
+            else
+            echo "<p>Surefire report not found. There might have been an error in test execution or report generation.</p>" >> email_body.html
+            fi
+            
+            echo "</body></html>" >> email_body.html
 
       - name: Send Email
         if: inputs.send-email
