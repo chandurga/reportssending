@@ -59,6 +59,14 @@ jobs:
         if: ${{ inputs.generate-report }}
         run: mvn surefire-report:report-only
 
+      - name: Prepare Email Content
+        if: ${{ inputs.send-email }}
+        run: |
+          echo "<h1>Test Report for ${{ inputs.run-name }}</h1>" > email_body.html
+          echo "<p>Job Status: ${{ job.status }}</p>" >> email_body.html
+          echo "<p>Please find the detailed test report below:</p>" >> email_body.html
+          cat target/site/surefire-report.html >> email_body.html
+
       - name: Send Email
         if: ${{ inputs.send-email }}
         uses: dawidd6/action-send-mail@v3
@@ -68,15 +76,7 @@ jobs:
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: Test Report for ${{ inputs.run-name }} - ${{ job.status }}
-          body: |
-            Test Report for ${{ inputs.run-name }}
-            Job Status: ${{ job.status }}
-            
-            Please find the detailed test report below and attached.
-            
-            <<<EOF
-            ${{ readFile('target/site/surefire-report.html') }}
-            EOF
+          body: file://email_body.html
           content_type: text/html
           to: durgamajji033@gmail.com
           from: Test Reporter <${{ secrets.EMAIL_USERNAME }}>
