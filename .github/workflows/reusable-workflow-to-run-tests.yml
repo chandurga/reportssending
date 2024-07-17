@@ -56,26 +56,33 @@ jobs:
           clean -B package --file pom.xml
 
       - name: Generate Surefire Report
-        if: ${{ inputs.send-email }}
+        if: ${{ inputs.generate-report }}
         run: mvn surefire-report:report-only
 
       - name: Send Email
+        if: ${{ inputs.send-email }}
         uses: dawidd6/action-send-mail@v3
         with:
-            server_address: smtp.gmail.com
-            server_port: 465
-            username: ${{ secrets.EMAIL_USERNAME }}
-            password: ${{ secrets.EMAIL_PASSWORD }}
-            subject: Test Report for CI - ${{ job.status }}
-            body: |
-                Test Report for CI
-                Job Status: ${{ job.status }}
-                Please find the detailed test report attached.
-            to: durgamajji033@gmail.com
-            from: Test Reporter <${{ secrets.EMAIL_USERNAME }}>
-            attachments: target/site/surefire-report.html
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: Test Report for ${{ inputs.run-name }} - ${{ job.status }}
+          body: |
+            Test Report for ${{ inputs.run-name }}
+            Job Status: ${{ job.status }}
+            
+            Please find the detailed test report below and attached.
+            
+            <<<EOF
+            ${{ readFile('target/site/surefire-report.html') }}
+            EOF
+          content_type: text/html
+          to: durgamajji033@gmail.com
+          from: Test Reporter <${{ secrets.EMAIL_USERNAME }}>
+          attachments: target/site/surefire-report.html
 
       - name: Submit Dependency Snapshot
         uses: advanced-security/maven-dependency-submission-action@v3
         with:
-         token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
