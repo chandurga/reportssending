@@ -46,6 +46,8 @@ jobs:
           GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
 
       - name: Test with Maven
+        id: maven-test
+        continue-on-error: true
         run: >
           mvn
           -DexcludedGroups="${{ inputs.tags-of-tests-to-exclude }}"
@@ -56,56 +58,54 @@ jobs:
           clean -B package --file pom.xml
 
       - name: Generate Surefire Report
-        if: ${{ inputs.generate-report }}
+        if: always() && inputs.generate-report
         run: mvn surefire-report:report-only
 
-      - name: Extract Failed Tests
-        if: failure() && inputs.send-email
+      - name: Extract Test Results
+        if: always()
         run: |
-            echo "<h2>Failed Tests:</h2>" | tee failed_tests.html
-            grep -A 1 "Tests in error:" target/surefire-reports/*.txt | grep -v "Tests in error:" | tee -a failed_tests.html || true
-            grep -A 1 "Tests run:" target/surefire-reports/*.txt | grep "Failures:" | tee -a failed_tests.html || true
+          echo "<h2>Test Results:</h2>" | tee test_results.html
+          echo "<pre>" >> test_results.html
+          grep -A 1 "Tests run:" target/surefire-reports/*.txt | tee -a test_results.html || echo "No test results found" >> test_results.html
+          echo "</pre>" >> test_results.html
 
       - name: Prepare Email Content
-        if: inputs.send-email
+        if: always() && inputs.send-email
         run: |
-            cat << EOF > email_body.html
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
+          cat << EOF > email_body.html
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Test Report for ${{ inputs.run-name }}</title>
-            </head>
-            <body>
+          </head>
+          <body>
             <h1>Test Report for ${{ inputs.run-name }}</h1>
-            <p>Job Status: ${{ job.status }}</p>
-            EOF
-            
-            if [ "${{ job.status }}" = "failure" ] && [ -f failed_tests.html ]; then
-            cat failed_tests.html >> email_body.html
-            fi
-            
-            echo "<p>Please find the detailed test report below:</p>" >> email_body.html
-            
-            if [ -f target/site/surefire-report.html ]; then
-            # Extract the body content of the Surefire report
+            <p>Job Status: ${{ steps.maven-test.outcome }}</p>
+          EOF
+
+          cat test_results.html >> email_body.html
+
+          echo "<p>Please find the detailed test report below:</p>" >> email_body.html
+
+          if [ -f target/site/surefire-report.html ]; then
             sed -n '/<body/,/<\/body>/p' target/site/surefire-report.html >> email_body.html
-            else
+          else
             echo "<p>Surefire report not found. There might have been an error in test execution or report generation.</p>" >> email_body.html
-            fi
-            
-            echo "</body></html>" >> email_body.html
+          fi
+
+          echo "</body></html>" >> email_body.html
 
       - name: Send Email
-        if: inputs.send-email
+        if: always() && inputs.send-email
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "Test Report for ${{ inputs.run-name }} - ${{ job.status == 'success' && 'PASSED' || 'FAILED' }}"
+          subject: "Test Report for ${{ inputs.run-name }} - ${{ steps.maven-test.outcome }}"
           body: file://email_body.html
           content_type: text/html
           to: durgamajji033@gmail.com
@@ -113,6 +113,7 @@ jobs:
           attachments: target/site/surefire-report.html
 
       - name: Submit Dependency Snapshot
+        if: always()
         uses: advanced-security/maven-dependency-submission-action@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -122,3 +123,7 @@ jobs:
         with:
           name: test-results
           path: target/surefire-reports/
+
+      - name: Check on failures
+        if: steps.maven-test.outcome != 'success'
+        run: exit 1
