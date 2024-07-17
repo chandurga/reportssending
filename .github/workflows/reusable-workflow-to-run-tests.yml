@@ -103,7 +103,16 @@ jobs:
           MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
           MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
         run: |
-          curl -s --user "api:$MAILGUN_API_KEY" \
+          if [ -z "$MAILGUN_API_KEY" ]; then
+            echo "Error: MAILGUN_API_KEY is not set"
+            exit 1
+          fi
+          if [ -z "$MAILGUN_DOMAIN" ]; then
+            echo "Error: MAILGUN_DOMAIN is not set"
+            exit 1
+          fi
+          echo "Sending email to Mailgun domain: $MAILGUN_DOMAIN"
+          curl -v --user "api:$MAILGUN_API_KEY" \
             https://api.mailgun.net/v3/$MAILGUN_DOMAIN/messages \
             -F from="Test Reporter <testbot@$MAILGUN_DOMAIN>" \
             -F to=durgamajji033@gmail.com \
