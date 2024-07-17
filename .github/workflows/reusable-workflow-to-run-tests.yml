@@ -64,11 +64,11 @@ jobs:
       - name: Extract Test Results
         if: always()
         run: |
-          echo "<h2>Test Results Summary:</h2>" > test_results.html
-          echo "<table border='1'>" >> test_results.html
-          echo "<tr><th>Test Suite</th><th>Tests Run</th><th>Failures</th><th>Errors</th><th>Skipped</th></tr>" >> test_results.html
-          grep "Tests run:" target/surefire-reports/*.txt | sed -E 's/.*Tests run: ([0-9]+), Failures: ([0-9]+), Errors: ([0-9]+), Skipped: ([0-9]+).*\/([^/]+\.txt).*/\5|\1|\2|\3|\4/' | while IFS='|' read -r suite tests failures errors skipped; do
-            echo "<tr><td>$suite</td><td>$tests</td><td>$failures</td><td>$errors</td><td>$skipped</td></tr>" >> test_results.html
+          echo "<table border='1' style='border-collapse: collapse; width: 100%;'>" > test_results.html
+          echo "<tr><th style='background-color: #f2f2f2; padding: 8px; text-align: left;'>Test Suite</th><th style='background-color: #f2f2f2; padding: 8px; text-align: left;'>Tests Run</th><th style='background-color: #f2f2f2; padding: 8px; text-align: left;'>Failures</th><th style='background-color: #f2f2f2; padding: 8px; text-align: left;'>Errors</th><th style='background-color: #f2f2f2; padding: 8px; text-align: left;'>Skipped</th></tr>" >> test_results.html
+          grep "Tests run:" target/surefire-reports/*.txt | sed -E 's/.*Tests run: ([0-9]+), Failures: ([0-9]+), Errors: ([0-9]+), Skipped: ([0-9]+).*/\1\t\2\t\3\t\4/' | while IFS=$'\t' read -r tests failures errors skipped; do
+            suite=$(echo $REPLY | cut -d':' -f1 | xargs basename | sed 's/TEST-//' | sed 's/.txt//')
+            echo "<tr><td style='padding: 8px;'>$suite</td><td style='padding: 8px;'>$tests</td><td style='padding: 8px;'>$failures</td><td style='padding: 8px;'>$errors</td><td style='padding: 8px;'>$skipped</td></tr>" >> test_results.html
           done
           echo "</table>" >> test_results.html
 
@@ -91,27 +91,25 @@ jobs:
           <body>
             <h1>Test Report for ${{ inputs.run-name }}</h1>
             <p>Job Status: ${{ steps.maven-test.outcome }}</p>
+            <h2>Test Results:</h2>
+            $(cat test_results.html)
+            <p>Please find the detailed test report above.</p>
+          </body>
+          </html>
           EOF
 
-          cat test_results.html >> email_body.html
-
-          echo "<p>Please find the detailed test report in the attached Surefire report.</p>" >> email_body.html
-          echo "</body></html>" >> email_body.html
-
-      - name: Send Email Notification
-        if: always()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          to: durgamajji033@gmail.com
-          from: Test Reporter <testbot@${{ secrets.MAILGUN_DOMAIN }}>
-          subject: "Test Report for ${{ inputs.run-name }} - ${{ steps.maven-test.outcome }}"
-          html: file://email_body.html
-          attachments: target/site/surefire-report.html
+      - name: Send email
+        if: always() && inputs.send-email
+        env:
+          MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
+          MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
+        run: |
+          curl -s --user "api:$MAILGUN_API_KEY" \
+            https://api.mailgun.net/v3/$MAILGUN_DOMAIN/messages \
+            -F from="Test Reporter <testbot@$MAILGUN_DOMAIN>" \
+            -F to=recipient@example.com \
+            -F subject="Test Report for ${{ inputs.run-name }} - ${{ steps.maven-test.outcome }}" \
+            -F html="$(cat email_body.html)"
 
       - uses: actions/upload-artifact@v3
         if: always()
