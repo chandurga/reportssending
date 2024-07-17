@@ -109,12 +109,6 @@ jobs:
             -F to=durgamajji033@gmail.com \
             -F subject="Test Report for ${{ inputs.run-name }} - ${{ steps.maven-test.outcome }}" \
             -F html="$(cat email_body.html)"
-        with:
-          to: durgamajji033@gmail.com
-          from: Test Reporter <testbot@${{ secrets.MAILGUN_DOMAIN }}>
-          subject: "Test Report for ${{ inputs.run-name }} - ${{ steps.maven-test.outcome }}"
-          html: file://email_body.html
-          attachments: target/site/surefire-report.html
 
       - uses: actions/upload-artifact@v3
         if: always()
