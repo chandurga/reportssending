@@ -59,23 +59,33 @@ jobs:
         if: ${{ inputs.generate-report }}
         run: mvn surefire-report:report-only
 
+      - name: Extract Failed Tests
+        if: failure() && inputs.send-email
+        run: |
+          echo "<h2>Failed Tests:</h2>" > failed_tests.html
+          grep -A 1 "Tests in error:" target/surefire-reports/*.txt | grep -v "Tests in error:" >> failed_tests.html
+          grep -A 1 "Tests run:" target/surefire-reports/*.txt | grep "Failures:" >> failed_tests.html
+
       - name: Prepare Email Content
-        if: ${{ inputs.send-email }}
+        if: inputs.send-email
         run: |
           echo "<h1>Test Report for ${{ inputs.run-name }}</h1>" > email_body.html
           echo "<p>Job Status: ${{ job.status }}</p>" >> email_body.html
+          if [ "${{ job.status }}" = "failure" ]; then
+            cat failed_tests.html >> email_body.html
+          fi
           echo "<p>Please find the detailed test report below:</p>" >> email_body.html
           cat target/site/surefire-report.html >> email_body.html
 
       - name: Send Email
-        if: ${{ inputs.send-email }}
+        if: inputs.send-email
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: Test Report for ${{ inputs.run-name }} - ${{ job.status }}
+          subject: "Test Report for ${{ inputs.run-name }} - ${{ job.status == 'success' && 'PASSED' || 'FAILED' }}"
           body: file://email_body.html
           content_type: text/html
           to: durgamajji033@gmail.com
@@ -86,3 +96,9 @@ jobs:
         uses: advanced-security/maven-dependency-submission-action@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results
+          path: target/surefire-reports/
