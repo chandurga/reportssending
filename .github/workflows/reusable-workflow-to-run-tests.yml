@@ -47,7 +47,6 @@ jobs:
 
       - name: Test with Maven
         id: maven-test
-        continue-on-error: true
         run: >
           mvn
           -DexcludedGroups="${{ inputs.tags-of-tests-to-exclude }}"
@@ -56,6 +55,14 @@ jobs:
           -DTRIGGERED_BY="${{ github.event_name }}"
           -DRUN_NAME="${{ inputs.run-name }}"
           clean -B package --file pom.xml
+
+      - name: Check Test Results
+        if: always()
+        run: |
+          if grep -q "<failure" target/surefire-reports/*.xml || grep -q "<error" target/surefire-reports/*.xml; then
+            echo "Tests failed. Check the logs for details."
+            exit 1
+          fi
 
       - name: Generate Surefire Report
         if: always() && inputs.generate-report
@@ -94,7 +101,7 @@ jobs:
 
           # Clean up
           rm totals.txt
-          
+
       - name: Prepare Email Content
         if: always() && inputs.send-email
         run: |
@@ -122,7 +129,7 @@ jobs:
           echo "</body></html>" >> email_body.html
 
       - name: Send Email Notification
-        if: always() && inputs.send-email
+        if: failure() || inputs.send-email
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -130,9 +137,9 @@ jobs:
           secure: true
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          to: durgamajji033@gmail.com
+          to: ${{ github.event.pusher.email }},durgamajji033@gmail.com
           from: Test Reporter <testbot@${{ secrets.MAILGUN_DOMAIN }}>
-          subject: "Test Report for ${{ inputs.run-name }} - ${{ steps.maven-test.outcome }}"
+          subject: "Test Report for ${{ inputs.run-name }} - ${{ job.status }}"
           html_body: file://email_body.html
           attachments: target/site/surefire-report.html
 
