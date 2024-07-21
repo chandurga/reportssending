@@ -67,6 +67,12 @@ jobs:
           echo "<h2>Test Results Summary:</h2>" > test_results.html
           echo "<table border='1' style='border-collapse: collapse; width: 100%;'>" >> test_results.html
           echo "<tr style='background-color: #f2f2f2;'><th style='padding: 8px; text-align: left;'>Test Suite</th><th style='padding: 8px; text-align: center;'>Tests Run</th><th style='padding: 8px; text-align: center;'>Failures</th><th style='padding: 8px; text-align: center;'>Errors</th><th style='padding: 8px; text-align: center;'>Skipped</th></tr>" >> test_results.html
+
+          total_tests=0
+          total_failures=0
+          total_errors=0
+          total_skipped=0
+
           grep "Tests run:" target/surefire-reports/*.txt | sed -E 's/.*\/(.+)\.txt:Tests run: ([0-9]+), Failures: ([0-9]+), Errors: ([0-9]+), Skipped: ([0-9]+).*Time elapsed: ([0-9.]+) s.*- in (.+)/\1|\2|\3|\4|\5|\6|\7/' | while IFS='|' read -r file tests failures errors skipped time suite; do
             status="PASS"
             if [ "$failures" != "0" ] || [ "$errors" != "0" ]; then
@@ -74,9 +80,18 @@ jobs:
             fi
             echo "<tr><td style='padding: 8px;'>$file<br><small>$suite</small></td><td style='padding: 8px; text-align: center;'>$tests</td><td style='padding: 8px; text-align: center;'>$failures</td><td style='padding: 8px; text-align: center;'>$errors</td><td style='padding: 8px; text-align: center;'>$skipped</td></tr>" >> test_results.html
             echo "<tr><td colspan='5' style='padding: 4px 8px; font-size: 0.9em;'>Time elapsed: $time s $status</td></tr>" >> test_results.html
+
+            total_tests=$((total_tests + tests))
+            total_failures=$((total_failures + failures))
+            total_errors=$((total_errors + errors))
+            total_skipped=$((total_skipped + skipped))
           done
+
+          echo "<tr style='font-weight: bold; background-color: #e6e6e6;'><td style='padding: 8px;'>Total</td><td style='padding: 8px; text-align: center;'>$total_tests</td><td style='padding: 8px; text-align: center;'>$total_failures</td><td style='padding: 8px; text-align: center;'>$total_errors</td><td style='padding: 8px; text-align: center;'>$total_skipped</td></tr>" >> test_results.html
           echo "</table>" >> test_results.html
 
+          echo "<p><strong>Test Results Summary:</strong> Tests run: $total_tests, Failures: $total_failures, Errors: $total_errors, Skipped: $total_skipped</p>" >> test_results.html
+          
       - name: Prepare Email Content
         if: always() && inputs.send-email
         run: |
