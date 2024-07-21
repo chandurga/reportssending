@@ -65,10 +65,15 @@ jobs:
         if: always()
         run: |
           echo "<h2>Test Results Summary:</h2>" > test_results.html
-          echo "<table border='1'>" >> test_results.html
-          echo "<tr><th>Test Suite</th><th>Tests Run</th><th>Failures</th><th>Errors</th><th>Skipped</th></tr>" >> test_results.html
-          grep "Tests run:" target/surefire-reports/*.txt | sed -E 's/.*Tests run: ([0-9]+), Failures: ([0-9]+), Errors: ([0-9]+), Skipped: ([0-9]+).*\/([^/]+\.txt).*/\5|\1|\2|\3|\4/' | while IFS='|' read -r suite tests failures errors skipped; do
-            echo "<tr><td>$suite</td><td>$tests</td><td>$failures</td><td>$errors</td><td>$skipped</td></tr>" >> test_results.html
+          echo "<table border='1' style='border-collapse: collapse; width: 100%;'>" >> test_results.html
+          echo "<tr style='background-color: #f2f2f2;'><th style='padding: 8px; text-align: left;'>Test Suite</th><th style='padding: 8px; text-align: center;'>Tests Run</th><th style='padding: 8px; text-align: center;'>Failures</th><th style='padding: 8px; text-align: center;'>Errors</th><th style='padding: 8px; text-align: center;'>Skipped</th></tr>" >> test_results.html
+          grep "Tests run:" target/surefire-reports/*.txt | sed -E 's/.*\/(.+)\.txt:Tests run: ([0-9]+), Failures: ([0-9]+), Errors: ([0-9]+), Skipped: ([0-9]+).*Time elapsed: ([0-9.]+) s.*- in (.+)/\1|\2|\3|\4|\5|\6|\7/' | while IFS='|' read -r file tests failures errors skipped time suite; do
+            status="PASS"
+            if [ "$failures" != "0" ] || [ "$errors" != "0" ]; then
+              status="FAILURE!"
+            fi
+            echo "<tr><td style='padding: 8px;'>$file<br><small>$suite</small></td><td style='padding: 8px; text-align: center;'>$tests</td><td style='padding: 8px; text-align: center;'>$failures</td><td style='padding: 8px; text-align: center;'>$errors</td><td style='padding: 8px; text-align: center;'>$skipped</td></tr>" >> test_results.html
+            echo "<tr><td colspan='5' style='padding: 4px 8px; font-size: 0.9em;'>Time elapsed: $time s $status</td></tr>" >> test_results.html
           done
           echo "</table>" >> test_results.html
 
