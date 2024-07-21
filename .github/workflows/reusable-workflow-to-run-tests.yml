@@ -137,7 +137,7 @@ jobs:
           secure: true
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          to: ${{ github.event.pusher.email }},durgamajji033@gmail.com
+          to: ${{ github.event.pusher.email }},durgamajji033@gmail.com,amitsedai@jagriti.co.in,nagashruthi@jagriti.co.in,kvvsraghavendra1995@gmail.com
           from: Test Reporter <testbot@${{ secrets.MAILGUN_DOMAIN }}>
           subject: "Test Report for ${{ inputs.run-name }} - ${{ job.status }}"
           html_body: file://email_body.html
